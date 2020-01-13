@@ -1,33 +1,64 @@
-# -*- coding: utf-8 -*-
+#-*- coding:utf-8 -*-
 from selenium import webdriver
+from bs4 import BeautifulSoup
+import requests
+import pandas as pd
+import re
 import thorrTime
+import time
 
 # 크롬 드라이버 동작
 driver = webdriver.Chrome('./chromedriver')
 
-# KISA 링크 
-# driver.get('https://www.kisa.or.kr/main.jsp')
-
-# 한글이 안되는 경우 string 앞에 u를 붙여준다.
 searchKeyword = u"블록체인"
 
-# # 검색 창에 검색
-driver.find_element_by_xpath('//*[@id="srch"]').send_keys(searchKeyword)
-driver.find_element_by_xpath('//*[@id="srchBtn"]').click()
-
-# 공지사항에 최근 블록체인 공지를 조회
+# 공지사항에 최근 공지를 조회
 endDate = thorrTime.nowDate() # 현재의 시간
 startDate = thorrTime.beforeMonth(6) # 과거의 시간
 # 검색을 하기 위해서는 과거 - 현재 순으로 시간을 입력해준다
 getUrl = u"https://search.kisa.or.kr/search/searchDetail.jsp?indent=on&version=2.2&start=0&rows=10&fl=*%2Cscore&hl=on&hl_fl=subject&debugQuery=&explainOther=&qt=standard&facet=false&facet_field=cat1&sortField=wdate&cat3=02&field=all&cat1=&keyword={}&keyword2={}&cat2=&startDate={}&endDate={}".format(searchKeyword,searchKeyword,startDate,endDate)
-getUrl = getUrl.encode('utf-8')
 
-# 1. 아예 get 요청으로 공지사항 리스트를 불러오자
+# 1. 아예 get 요청으로 공지사항 리스트를 불러오자 z
 driver.get(getUrl)
+html = driver.page_source
+soupData = BeautifulSoup(html, 'html.parser')
 
-# # 총 검색해야하는 갯수, 현재 동작 안하는 변수
-# totalBoardCount = driver.find_element_by_xpath('//*[@id="contents"]/div[2]/div[3]/div[2]/h1') 
-# print(totalBoardCount)
+# 2. count는 읽어올 게시글 수
+count = str(soupData.select('#contents > div.content_inner > div.section.mbi_wrap > div.section.result.first > h1 > span:nth-child(2)'))
+count=re.sub('<.+?>', '', count, 0).strip()
+# re.sub('패턴','바꿀 문자열','문자열',바꿀횟수)
+count = int(count[1:-1])
 
-# 동적페이지에서 결과를 얻어냈고, 해당 페이지의 결과를 request 혹은 bs4 를 사용해서 불러와야겠다
+# 3. 공지 데이터 가져오기
+noticeTitleList = []
+noticeLinkList = []
+noticeContentsList = []
 
+for i in range(0, 11 if count>10 else count, 1):
+    noticetitle = soupData.select("#contents > div.content_inner > div.section.mbi_wrap > div.section.result.first > ul > li:nth-child({}) > dl > dt > a".format(i))
+    noticetitle = re.sub('<.+?>', '', str(noticetitle), 0).strip()
+    noticetitle = noticetitle[1:-1]
+    noticeTitleList.append(noticetitle.encode("EUC-KR"))
+
+for href in soupData.find("div", class_="section result first").find_all("li"):
+    noticeLink = href.find('a')["href"]
+    noticeLinkList.append(noticeLink)
+
+# 20.01.03 각 링크 데이터 조회하는거 추가하기
+for i in range(len(noticeLinkList)):
+    driver.get(noticeLinkList[i])
+    noticeData = driver.page_source
+    noticeSoup = BeautifulSoup(noticeData, 'html.parser')
+    noticeContent = noticeSoup.select("#content_inner > div > table.bbs_view.clr_m4 > tbody > tr:nth-child(5) > td")
+    noticeContent = re.sub('<.+?>', '', str(noticetitle), 0).strip()
+    noticeContentsList.append(noticeContent)
+
+# 4. csv 파일로 내용 정리하기
+result = []
+
+if len(noticeTitleList) == len(noticeLinkList):
+    for i in range(len(noticeTitleList)):
+        result.append([noticeTitleList[i],noticeLinkList[i],noticeContentsList[i]])
+data = pd.DataFrame(result)
+data.columns = ["Title", "Link", "Contents"]
+data.to_csv(u'KISA크롤링결과.csv', encoding='utf-8')

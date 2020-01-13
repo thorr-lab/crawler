@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#-*- coding:utf-8 -*-
 import datetime
 
 # 현재 시간을 계산하는 함수
@@ -19,6 +19,8 @@ def beforeMonth(bMonth):
     year = dt.year
     month = dt.month
     if month < bMonth:
+        # To-Do List
+        # - 12개월 이상의 값을 입력해도 동작할 수 있게끔 수정 예정
         year -= 1
         bMonth -= month
         month = 12 - bMonth
