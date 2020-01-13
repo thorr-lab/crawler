@@ -46,7 +46,7 @@ for href in soupData.find("div", class_="section result first").find_all("li"):
 
 print(noticeLinkList)
 
-# 5. 각 링크 데이터 조회하는거 추가하기
+# 4. 각 링크 데이터 조회하는거 추가하기
 for linkcount in range(len(noticeLinkList)):
     driver.get(noticeLinkList[linkcount])
     noticeData = driver.page_source
@@ -54,9 +54,8 @@ for linkcount in range(len(noticeLinkList)):
     noticeContent = noticeSoup.select("#content_inner > div > table.bbs_view.clr_m4 > tbody > tr:nth-child(5)")
     noticeContent = re.sub('<.+?>', '', str(noticeContent), 0).strip()
     noticeContentsList.append(noticeContent)
-    time.sleep(1)
 
-# 4. csv 파일로 내용 정리하기
+# 5. csv 파일로 내용 정리하기
 result = []
 
 if len(noticeTitleList) == len(noticeLinkList):
@@ -64,4 +63,4 @@ if len(noticeTitleList) == len(noticeLinkList):
         result.append([noticeTitleList[i],noticeLinkList[i],noticeContentsList[i]])
 data = pd.DataFrame(result)
 data.columns = ["Title", "Link", "Contents"]
-data.to_csv(u'KISA크롤링결과.csv', encoding="utf-8")
+data.to_csv(u'KISA크롤링결과.csv', encoding="utf-8-sig")
