@@ -34,24 +34,27 @@ noticeTitleList = []
 noticeLinkList = []
 noticeContentsList = []
 
-for i in range(0, 11 if count>10 else count, 1):
+for i in range(1, 11 if count>10 else count+1, 1):
     noticetitle = soupData.select("#contents > div.content_inner > div.section.mbi_wrap > div.section.result.first > ul > li:nth-child({}) > dl > dt > a".format(i))
     noticetitle = re.sub('<.+?>', '', str(noticetitle), 0).strip()
     noticetitle = noticetitle[1:-1]
-    noticeTitleList.append(noticetitle.encode("EUC-KR"))
+    noticeTitleList.append(noticetitle)
 
 for href in soupData.find("div", class_="section result first").find_all("li"):
     noticeLink = href.find('a')["href"]
     noticeLinkList.append(noticeLink)
 
-# 20.01.03 각 링크 데이터 조회하는거 추가하기
-for i in range(len(noticeLinkList)):
-    driver.get(noticeLinkList[i])
+print(noticeLinkList)
+
+# 5. 각 링크 데이터 조회하는거 추가하기
+for linkcount in range(len(noticeLinkList)):
+    driver.get(noticeLinkList[linkcount])
     noticeData = driver.page_source
     noticeSoup = BeautifulSoup(noticeData, 'html.parser')
-    noticeContent = noticeSoup.select("#content_inner > div > table.bbs_view.clr_m4 > tbody > tr:nth-child(5) > td")
-    noticeContent = re.sub('<.+?>', '', str(noticetitle), 0).strip()
+    noticeContent = noticeSoup.select("#content_inner > div > table.bbs_view.clr_m4 > tbody > tr:nth-child(5)")
+    noticeContent = re.sub('<.+?>', '', str(noticeContent), 0).strip()
     noticeContentsList.append(noticeContent)
+    time.sleep(1)
 
 # 4. csv 파일로 내용 정리하기
 result = []
@@ -61,4 +64,4 @@ if len(noticeTitleList) == len(noticeLinkList):
         result.append([noticeTitleList[i],noticeLinkList[i],noticeContentsList[i]])
 data = pd.DataFrame(result)
 data.columns = ["Title", "Link", "Contents"]
-data.to_csv(u'KISA크롤링결과.csv', encoding='utf-8')
+data.to_csv(u'KISA크롤링결과.csv', encoding="utf-8")
